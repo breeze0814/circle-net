@@ -1,6 +1,10 @@
 # circle net
-## 🚀 Demo
-<img src="https://github.com/heygsc/circle-net/blob/main/demo.gif" height="300">
+## 🚀 How to Play
+### Change Point Count
+<img src="https://github.com/heygsc/circle-net/blob/main/count.gif" height="300">
+
+### Drag Points
+<img src="https://github.com/heygsc/circle-net/blob/main/drag.gif" height="300">
 
 ## 🌐 Link
 https://circle-net.vercel.app

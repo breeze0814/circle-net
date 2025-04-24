@@ -30,15 +30,18 @@
 
     .point {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 5px;
-      height: 5px;
-      background: #4fc3f7;
+      width: 10px;
+      height: 10px;
+      background: #50e3c2;
       border-radius: 50%;
-      transform: translate(-50%, -50%)
-        rotate(calc(var(--i) * (360deg / var(--total-points))))
-        translateY(calc(-1 * var(--radius)));
+      left: var(--x);
+      top: var(--y);
+      transform: translate(-50%, -50%);
+    }
+
+    .point:hover {
+      background: #ff6b6b;
+      cursor: pointer;
     }
 
     .connections {
@@ -52,7 +55,7 @@
     .connection {
       position: absolute;
       height: 1px;
-      background: rgba(79, 195, 247, 0.3);
+      background: rgba(74, 144, 226, 0.3);
       transform-origin: 0 0;
       transform: rotate(var(--angle));
       animation: connect 2s forwards;
@@ -108,6 +111,18 @@
         }
       });
 
+      // enter key
+      pointCountInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          const count = parseInt(pointCountInput.value);
+          if (count >= 3 && count <= 100) {
+            generateCircle(count);
+          } else {
+            alert("please enter a number between 3 and 100");
+          }
+        }
+      });
+
       // circle & connection
       function generateCircle(totalPoints) {
         // clear
@@ -121,7 +136,35 @@
         for (let i = 0; i < totalPoints; i++) {
           const point = document.createElement("div");
           point.className = "point";
-          point.style.setProperty("--i", i);
+          const pos = getPointPosition(i, totalPoints);
+          point.style.setProperty("--x", pos.x + "px");
+          point.style.setProperty("--y", pos.y + "px");
+          point.dragging = false;
+          point.offset = { x: 0, y: 0 };
+          point.currentPos = pos;
+
+          point.addEventListener("mousedown", (e) => {
+            point.dragging = true;
+            point.offset = {
+              x: e.clientX - point.currentPos.x,
+              y: e.clientY - point.currentPos.y,
+            };
+          });
+
+          document.addEventListener("mousemove", (e) => {
+            if (point.dragging) {
+              const newX = e.clientX - point.offset.x;
+              const newY = e.clientY - point.offset.y;
+              point.style.setProperty("--x", newX + "px");
+              point.style.setProperty("--y", newY + "px");
+              point.currentPos = { x: newX, y: newY };
+              updateConnections();
+            }
+          });
+
+          document.addEventListener("mouseup", () => {
+            point.dragging = false;
+          });
           circle.appendChild(point);
         }
 
@@ -146,11 +189,38 @@
       }
 
       function getPointPosition(index, totalPoints) {
-        const angle = (index / totalPoints) * 2 * Math.PI;
+        const angle = ((index + 0.5) / totalPoints) * 2 * Math.PI;
+        const x = center.x + Math.round(radius * Math.sin(angle));
+        const y = center.y - Math.round(radius * Math.cos(angle));
         return {
-          x: center.x + radius * Math.sin(angle),
-          y: center.y - radius * Math.cos(angle),
+          x: x,
+          y: y,
         };
+      }
+
+      function updateConnections() {
+        connectionsContainer.innerHTML = "";
+        const points = circle.querySelectorAll(".point");
+        for (let i = 0; i < points.length; i++) {
+          const p1 = {
+            x: parseFloat(points[i].style.getPropertyValue("--x")),
+            y: parseFloat(points[i].style.getPropertyValue("--y")),
+          };
+          for (let j = i + 1; j < points.length; j++) {
+            const p2 = {
+              x: parseFloat(points[j].style.getPropertyValue("--x")),
+              y: parseFloat(points[j].style.getPropertyValue("--y")),
+            };
+            const { distance, angle } = calculateConnection(p1, p2);
+            const connection = document.createElement("div");
+            connection.className = "connection";
+            connection.style.setProperty("--distance", `${distance}px`);
+            connection.style.left = `${p1.x}px`;
+            connection.style.top = `${p1.y}px`;
+            connection.style.transform = `rotate(${angle}deg)`;
+            connectionsContainer.appendChild(connection);
+          }
+        }
       }
 
       function calculateConnection(p1, p2) {
