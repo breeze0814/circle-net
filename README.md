@@ -1,3 +1,3 @@
 https://circle-net.vercel.app
 
-<img src="https://github.com/heygsc/circle-net/blob/main/demo.png"  height="300">
+<img src="https://github.com/heygsc/circle-net/blob/main/demo.gif"  height="300">
