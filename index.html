@@ -1,0 +1,167 @@
+<head>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .controls {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .circle-container {
+      position: relative;
+      width: 500px;
+      height: 500px;
+    }
+
+    .circle {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border: 1px solid black;
+      border-radius: 50%;
+    }
+
+    .point {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      background: #4fc3f7;
+      border-radius: 50%;
+      transform: translate(-50%, -50%)
+        rotate(calc(var(--i) * (360deg / var(--total-points))))
+        translateY(calc(-1 * var(--radius)));
+    }
+
+    .connections {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .connection {
+      position: absolute;
+      height: 1px;
+      background: rgba(79, 195, 247, 0.3);
+      transform-origin: 0 0;
+      transform: rotate(var(--angle));
+      animation: connect 2s forwards;
+    }
+
+    @keyframes connect {
+      from {
+        width: 0;
+        opacity: 0;
+      }
+      to {
+        width: var(--distance);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <label for="pointCount">number of points:</label>
+    <input type="number" id="pointCount" min="3" max="100" value="32" />
+    <button id="generateBtn">go🚀</button>
+  </div>
+
+  <div class="circle-container">
+    <div class="circle" id="circle">
+      <!-- points -->
+      <div class="connections" id="connections"></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const pointCountInput = document.getElementById("pointCount");
+      const generateBtn = document.getElementById("generateBtn");
+      const circle = document.getElementById("circle");
+      const connectionsContainer = document.getElementById("connections");
+
+      const radius = 250;
+      const center = { x: 250, y: 250 };
+
+      // init
+      generateCircle(parseInt(pointCountInput.value));
+
+      // click
+      generateBtn.addEventListener("click", function () {
+        const count = parseInt(pointCountInput.value);
+        if (count >= 3 && count <= 100) {
+          generateCircle(count);
+        } else {
+          alert("please enter a number between 3 and 100");
+        }
+      });
+
+      // circle & connection
+      function generateCircle(totalPoints) {
+        // clear
+        circle.querySelectorAll(".point").forEach((el) => el.remove());
+        connectionsContainer.innerHTML = "";
+
+        circle.style.setProperty("--total-points", totalPoints);
+        circle.style.setProperty("--radius", radius + "px");
+
+        // points
+        for (let i = 0; i < totalPoints; i++) {
+          const point = document.createElement("div");
+          point.className = "point";
+          point.style.setProperty("--i", i);
+          circle.appendChild(point);
+        }
+
+        // lines
+        for (let i = 0; i < totalPoints; i++) {
+          const p1 = getPointPosition(i, totalPoints);
+
+          for (let j = i + 1; j < totalPoints; j++) {
+            const p2 = getPointPosition(j, totalPoints);
+            const { distance, angle } = calculateConnection(p1, p2);
+
+            const connection = document.createElement("div");
+            connection.className = "connection";
+            connection.style.setProperty("--distance", `${distance}px`);
+            connection.style.left = `${p1.x}px`;
+            connection.style.top = `${p1.y}px`;
+            connection.style.transform = `rotate(${angle}deg)`;
+
+            connectionsContainer.appendChild(connection);
+          }
+        }
+      }
+
+      function getPointPosition(index, totalPoints) {
+        const angle = (index / totalPoints) * 2 * Math.PI;
+        return {
+          x: center.x + radius * Math.sin(angle),
+          y: center.y - radius * Math.cos(angle),
+        };
+      }
+
+      function calculateConnection(p1, p2) {
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+
+        return {
+          distance: distance,
+          angle: angle,
+        };
+      }
+    });
+  </script>
+</body>
