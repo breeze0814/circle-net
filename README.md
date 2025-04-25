@@ -1,4 +1,11 @@
-# circle net
+# Circle Net
+
+<div align="center">
+
+English . [中文](./README_CN.md)
+
+</div>
+
 ## 🚀 How to Play
 ### Change Point Count
 <img src="https://github.com/heygsc/circle-net/blob/main/count.gif" height="300">
