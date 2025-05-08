@@ -14,7 +14,7 @@
 <img src="https://github.com/heygsc/circle-net/blob/main/drag.gif" height="300">
 
 ## 🌐 在线链接
-https://circle-net.vercel.app
+https://heygsc.github.io/circle-net
 
 ## 🛠️​ 常见问题​
 ##### ❓ ​​点数为什么只有3-100？​
