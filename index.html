@@ -151,7 +151,6 @@
             document.addEventListener('mouseup', handleMouseUp);
           });
 
-
           pointsMap.set(pointEl, new Map());
           circle.appendChild(pointEl);
         }
@@ -224,7 +223,6 @@
         activePointEl.classList.remove('dragging');
         activePointEl = null;
       }
-
 
       function updateConnections(pointEl) {
         const connections = pointsMap.get(pointEl);
