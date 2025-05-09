@@ -17,7 +17,7 @@ English . [中文](./README_CN.md)
 https://heygsc.github.io/circle-net
 
 ## 🛠️​ FAQ​
-##### ❓ ​​Why only 3-100?​
-💡​ In 2025, on my M4 Pro Mac mini (24GB RAM), ​​animations at ​​99​​ were already not very smooth, and ​​200​​ would freeze it.
+##### ❓ ​​Why only 3-300?​
+💡​ In 2025, on my M4 Pro Mac mini (24GB RAM), ​​animations at 300 were already not very smooth, and 400 would freeze it.
 
 ## 🌟 Welcome STAR and follow!

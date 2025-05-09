@@ -34,45 +34,41 @@
       height: 10px;
       background: #50e3c2;
       border-radius: 50%;
-      left: var(--x);
-      top: var(--y);
-      transform: translate(-50%, -50%);
+      z-index: 1;
     }
 
     .point:hover {
       background: #ff6b6b;
-      cursor: pointer;
+      cursor: grab;
     }
 
-    .connections {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+    .point.dragging {
+      cursor: grabbing;
+      background-color: blue;
+      will-change: transform;
     }
 
     .connection {
       position: absolute;
       height: 1px;
+      width: 100px;
       background: rgba(74, 144, 226, 0.3);
-      transform-origin: 0 0;
-      transform: rotate(var(--angle));
-      width: var(--distance);
+      transform-origin: left center;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
   <div class="controls">
     <label for="pointCount">number of points:</label>
-    <input type="number" id="pointCount" min="3" max="100" value="32" />
+    <input type="number" id="pointCount" min="3" max="300" value="32" />
     <button id="generateBtn">go🚀</button>
   </div>
 
   <div class="circle-container">
     <div class="circle" id="circle">
       <!-- points -->
-      <div class="connections" id="connections"></div>
+      <!-- connections -->
     </div>
   </div>
 
@@ -83,10 +79,13 @@
       const pointCountInput = document.getElementById("pointCount");
       const generateBtn = document.getElementById("generateBtn");
       const circle = document.getElementById("circle");
-      const connectionsContainer = document.getElementById("connections");
 
       const radius = 250;
+      const pointRadius = 5;
       const center = { x: 250, y: 250 };
+      const pointsMap = new Map();
+      let activePointEl = null;
+      let updatePage = null
 
       // init
       generateCircle(parseInt(pointCountInput.value));
@@ -94,10 +93,10 @@
       // click
       generateBtn.addEventListener("click", function () {
         const count = parseInt(pointCountInput.value);
-        if (count >= 3 && count <= 100) {
+        if (count >= 3 && count <= 300) {
           generateCircle(count);
         } else {
-          alert("please enter a number between 3 and 100");
+          alert("please enter a number between 3 and 300");
         }
       });
 
@@ -105,111 +104,141 @@
       pointCountInput.addEventListener("keydown", function (e) {
         if (e.key === "Enter") {
           const count = parseInt(pointCountInput.value);
-          if (count >= 3 && count <= 100) {
+          if (count >= 3 && count <= 300) {
             generateCircle(count);
           } else {
-            alert("please enter a number between 3 and 100");
+            alert("please enter a number between 3 and 300");
           }
-        }
+        }300
       });
 
       // circle & connection
       function generateCircle(totalPoints) {
-        // clear
-        circle.querySelectorAll(".point").forEach((el) => el.remove());
-        connectionsContainer.innerHTML = "";
+        const oldPointEls = circle.querySelectorAll('.point');
+        oldPointEls.forEach(point => point.remove());
+        const oldConnectionEls = circle.querySelectorAll('.connection');
+        oldConnectionEls.forEach(connection => connection.remove());
 
-        circle.style.setProperty("--total-points", totalPoints);
-        circle.style.setProperty("--radius", radius + "px");
+        pointsMap.clear();
 
-        // points
+        const angleStep = (2 * Math.PI) / totalPoints;
         for (let i = 0; i < totalPoints; i++) {
-          const point = document.createElement("div");
-          point.className = "point";
-          const pos = getPointPosition(i, totalPoints);
-          point.style.setProperty("--x", pos.x + "px");
-          point.style.setProperty("--y", pos.y + "px");
-          point.dragging = false;
-          point.offset = { x: 0, y: 0 };
-          point.currentPos = pos;
+          const angle = angleStep * i;
 
-          point.addEventListener("mousedown", (e) => {
-            point.dragging = true;
-            point.offset = {
-              x: e.clientX - point.currentPos.x,
-              y: e.clientY - point.currentPos.y,
-            };
+          const x = Math.round(radius * Math.cos(angle));
+          const y = Math.round(radius * Math.sin(angle));
+
+          const pointEl = document.createElement('div');
+          pointEl.classList.add('point');
+          pointEl.style.width = `${pointRadius * 2}px`;
+          pointEl.style.height = `${pointRadius * 2}px`;
+          const left = x + radius - pointRadius;
+          const top = y + radius - pointRadius;
+          const translate = `translate(${left}px, ${top}px)`;
+          pointEl.style.transform = translate;
+          pointEl.dataset.left = left;
+          pointEl.dataset.top = top;
+
+          pointEl.addEventListener('mousedown', (e) => {
+            activePointEl = e.target
+
+            activePointEl.dataset.dragging = true;
+            activePointEl.dataset.startX = e.clientX;
+            activePointEl.dataset.startY = e.clientY;
+            activePointEl.classList.add('dragging');
+
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
           });
 
-          document.addEventListener("mousemove", (e) => {
-            if (point.dragging) {
-              const newX = e.clientX - point.offset.x;
-              const newY = e.clientY - point.offset.y;
-              point.style.setProperty("--x", newX + "px");
-              point.style.setProperty("--y", newY + "px");
-              point.currentPos = { x: newX, y: newY };
-              updateConnections();
-            }
-          });
 
-          document.addEventListener("mouseup", () => {
-            point.dragging = false;
-          });
-          circle.appendChild(point);
+          pointsMap.set(pointEl, new Map());
+          circle.appendChild(pointEl);
         }
 
         // lines
-        for (let i = 0; i < totalPoints; i++) {
-          const p1 = getPointPosition(i, totalPoints);
+        const pointEls = circle.querySelectorAll('.point');
+        for (let i = 0; i < pointEls.length; i++) {
+          for (let j = i + 1; j < pointEls.length; j++) {
+            const pointA = pointEls[i];
+            const pointB = pointEls[j];
+            const { distance, angle } = calculateConnection(
+              { x: pointA.dataset.left, y: pointA.dataset.top },
+              { x: pointB.dataset.left, y: pointB.dataset.top }
+            );
 
-          for (let j = i + 1; j < totalPoints; j++) {
-            const p2 = getPointPosition(j, totalPoints);
-            const { distance, angle } = calculateConnection(p1, p2);
+            const connectionEl = document.createElement('div');
+            connectionEl.classList.add('connection');
+            const translate = `translate(${+pointA.dataset.left + pointRadius}px, ${+pointA.dataset.top + pointRadius}px)`;
+            const rotate = `rotate(${angle}deg)`;
+            const scale = `scaleX(${distance / 100})`;
+            connectionEl.style.transform = `${translate} ${rotate} ${scale}`;
 
-            const connection = document.createElement("div");
-            connection.className = "connection";
-            connection.style.setProperty("--distance", `${distance}px`);
-            connection.style.left = `${p1.x}px`;
-            connection.style.top = `${p1.y}px`;
-            connection.style.transform = `rotate(${angle}deg)`;
+            const connection = [pointA, pointB];
+            pointsMap.get(pointA).set(connectionEl, connection);
+            pointsMap.get(pointB).set(connectionEl, connection);
 
-            connectionsContainer.appendChild(connection);
+            circle.appendChild(connectionEl);
           }
         }
       }
 
-      function getPointPosition(index, totalPoints) {
-        const angle = ((index + 0.5) / totalPoints) * 2 * Math.PI;
-        const x = center.x + Math.round(radius * Math.sin(angle));
-        const y = center.y - Math.round(radius * Math.cos(angle));
-        return {
-          x: x,
-          y: y,
-        };
+      function handleMouseMove(e) {
+        if (!activePointEl) return;
+
+        if (activePointEl.dataset.dragging) {
+          const dx = e.clientX - activePointEl.dataset.startX;
+          const dy = e.clientY - activePointEl.dataset.startY;
+          const newLeft = +activePointEl.dataset.left + dx;
+          const newTop = +activePointEl.dataset.top + dy;
+
+          activePointEl.dataset.left = newLeft;
+          activePointEl.dataset.top = newTop;
+          activePointEl.dataset.startX = e.clientX;
+          activePointEl.dataset.startY = e.clientY;
+
+          updatePage = () => {
+            const translate = `translate(${newLeft}px, ${newTop}px)`;
+            activePointEl.style.transform = translate;
+            updateConnections(activePointEl);
+          }
+
+          requestAnimationFrame(() => {
+            if (typeof updatePage === 'function') {
+              updatePage();
+              updatePage = null;
+            }
+          });
+        }
       }
 
-      function updateConnections() {
-        connectionsContainer.innerHTML = "";
-        const points = circle.querySelectorAll(".point");
-        for (let i = 0; i < points.length; i++) {
-          const p1 = {
-            x: parseFloat(points[i].style.getPropertyValue("--x")),
-            y: parseFloat(points[i].style.getPropertyValue("--y")),
-          };
-          for (let j = i + 1; j < points.length; j++) {
-            const p2 = {
-              x: parseFloat(points[j].style.getPropertyValue("--x")),
-              y: parseFloat(points[j].style.getPropertyValue("--y")),
-            };
-            const { distance, angle } = calculateConnection(p1, p2);
-            const connection = document.createElement("div");
-            connection.className = "connection";
-            connection.style.setProperty("--distance", `${distance}px`);
-            connection.style.left = `${p1.x}px`;
-            connection.style.top = `${p1.y}px`;
-            connection.style.transform = `rotate(${angle}deg)`;
-            connectionsContainer.appendChild(connection);
-          }
+      function handleMouseUp(e) {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        
+        if (!activePointEl) return;
+
+        delete activePointEl.dataset.dragging;
+        delete activePointEl.dataset.startX;
+        delete activePointEl.dataset.startY;
+        activePointEl.classList.remove('dragging');
+        activePointEl = null;
+      }
+
+
+      function updateConnections(pointEl) {
+        const connections = pointsMap.get(pointEl);
+        for (const [connectionEl, connection] of connections) {
+          const [pointA, pointB] = connection;
+          const { distance, angle } = calculateConnection(
+            { x: pointA.dataset.left, y: pointA.dataset.top },
+            { x: pointB.dataset.left, y: pointB.dataset.top }
+          );
+
+          const translate = `translate(${+pointA.dataset.left + pointRadius}px, ${+pointA.dataset.top + pointRadius}px)`;
+          const rotate = `rotate(${angle}deg)`;
+          const scale = `scaleX(${distance / 100})`;
+          connectionEl.style.transform = `${translate} ${rotate} ${scale}`;
         }
       }
 
